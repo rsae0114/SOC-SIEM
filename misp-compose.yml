@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  web:
+    build: web
+    depends_on:
+      - db
+    container_name: misp_web
+    image: misp:latest
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - /dev/urandom:/dev/random
+      - ./data/web:/var/www/MISP
+    environment:
+      - MYSQL_HOST=misp_db
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp
+      - MISP_ADMIN_EMAIL=admin@admin.test
+      - MISP_ADMIN_PASSPHRASE=admin
+      - MISP_BASEURL=test
+      - POSTFIX_RELAY_HOST=relay.fqdn
+      - TIMEZONE=Europe/Madrid
+
+# sudo -u www-data var/www/MISP/app/Console/cake Baseurl https://<ip>:8443
+
+  db:
+    container_name: misp_db
+    image: mysql/mysql-server:5.7
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp
+      - MYSQL_ROOT_PASSWORD=misp
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+
+  misp-modules:
+    image: coolacid/misp-docker:modules-latest
+    container_name: misp-modules
+    environment:
+      - "REDIS_BACKEND=redis"
+    depends_on:
+      - redis
+      - db
